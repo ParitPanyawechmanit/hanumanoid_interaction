@@ -5,9 +5,9 @@ moveit_setup_assistant_config:
   srdf:
     relative_path: config/hanumanoid_interaction.srdf
   package_settings:
-    author_name: Parit
+    author_name: Parit Panyawechmanit
     author_email: 66011124@kmitl.ac.th
-    generated_timestamp: 1765797832
+    generated_timestamp: 1767632269
   control_xacro:
     command:
       - position

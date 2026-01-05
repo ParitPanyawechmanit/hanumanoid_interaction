@@ -11,20 +11,6 @@
                 <param name="joint_states_topic">/isaac_joint_states</param>
                 <param name="joint_commands_topic">/isaac_joint_command</param>
             </hardware>
-            <joint name="Joint_neck_yaw">
-                <command_interface name="position"/>
-                <state_interface name="position">
-                  <param name="initial_value">${initial_positions['Joint_neck_yaw']}</param>
-                </state_interface>
-                <state_interface name="velocity"/>
-            </joint>
-            <joint name="Joint_neck_pitch">
-                <command_interface name="position"/>
-                <state_interface name="position">
-                  <param name="initial_value">${initial_positions['Joint_neck_pitch']}</param>
-                </state_interface>
-                <state_interface name="velocity"/>
-            </joint>
             <joint name="Joint_l_shoulder_pitch">
                 <command_interface name="position"/>
                 <state_interface name="position">

@@ -15,34 +15,46 @@
     <group name="right_arm">
         <chain base_link="base_link" tip_link="r_hand_roll_1"/>
     </group>
-    <group name="both_arms">
+    <group name="both_arm">
         <group name="left_arm"/>
         <group name="right_arm"/>
     </group>
+    <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'folded arms'-->
+    <group_state name="Default" group="both_arm">
+        <joint name="Joint_l_elbow_pitch" value="0"/>
+        <joint name="Joint_l_shoulder_pitch" value="0"/>
+        <joint name="Joint_l_shoulder_roll" value="0"/>
+        <joint name="Joint_l_shoulder_yaw" value="0"/>
+        <joint name="Joint_l_wrist_pitch" value="0"/>
+        <joint name="Joint_l_wrist_roll" value="0"/>
+        <joint name="Joint_l_wrist_yaw" value="0"/>
+        <joint name="Joint_r_elbow_pitch" value="0"/>
+        <joint name="Joint_r_shoulder_pitch" value="0"/>
+        <joint name="Joint_r_shoulder_roll" value="0"/>
+        <joint name="Joint_r_shoulder_yaw" value="0"/>
+        <joint name="Joint_r_wrist_pitch" value="0"/>
+        <joint name="Joint_r_wrist_roll" value="0"/>
+        <joint name="Joint_r_wrist_yaw" value="0"/>
+    </group_state>
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
-    <virtual_joint name="world_joint" type="fixed" parent_frame="world" child_link="base_link"/>
+    <virtual_joint name="Work_object" type="fixed" parent_frame="base_link" child_link="base_link"/>
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
     <disable_collisions link1="E1R_1" link2="abdomen_1" reason="Never"/>
+    <disable_collisions link1="E1R_1" link2="base_link" reason="Adjacent"/>
     <disable_collisions link1="E1R_1" link2="fixed_imu_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="fixed_mid_360_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_contact_sensor_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="l_hand_roll_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_index_distal_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_index_middle_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="l_index_proximal_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="l_long_distal_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="l_long_middle_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_long_proximal_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_lowerarm_pitch_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_pinky_distal_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_pinky_middle_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_pinky_proximal_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="l_ring_distal_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="l_ring_middle_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_ring_proximal_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_shoulder_pitch_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_shoulder_roll_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="l_thumb_distal_1" reason="Never"/>
+    <disable_collisions link1="E1R_1" link2="l_thumb_roll_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_thumb_yaw_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="l_wrist_pitch_1" reason="Never"/>
@@ -50,9 +62,6 @@
     <disable_collisions link1="E1R_1" link2="neck_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_contact_sensor_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_hand_roll_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="r_index_distal_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="r_index_middle_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="r_index_proximal_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_long_distal_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_long_middle_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_long_proximal_1" reason="Never"/>
@@ -66,40 +75,36 @@
     <disable_collisions link1="E1R_1" link2="r_shoulder_pitch_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_shoulder_roll_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_thumb_distal_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="r_thumb_middle_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="r_thumb_roll_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_thumb_yaw_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="E1R_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="E1R_1" link2="torso_1" reason="Adjacent"/>
-    <disable_collisions link1="abdomen_1" link2="base_link" reason="Never"/>
+    <disable_collisions link1="abdomen_1" link2="base_link" reason="Adjacent"/>
     <disable_collisions link1="abdomen_1" link2="fixed_imu_1" reason="Never"/>
     <disable_collisions link1="abdomen_1" link2="fixed_mid_360_1" reason="Never"/>
+    <disable_collisions link1="abdomen_1" link2="head_1" reason="Never"/>
     <disable_collisions link1="abdomen_1" link2="l_lowerarm_pitch_1" reason="Never"/>
     <disable_collisions link1="abdomen_1" link2="l_shoulder_pitch_1" reason="Never"/>
     <disable_collisions link1="abdomen_1" link2="l_shoulder_roll_1" reason="Never"/>
     <disable_collisions link1="abdomen_1" link2="l_upperarm_yaw_1" reason="Never"/>
-    <disable_collisions link1="abdomen_1" link2="l_wrist_yaw_1" reason="Never"/>
     <disable_collisions link1="abdomen_1" link2="neck_1" reason="Never"/>
     <disable_collisions link1="abdomen_1" link2="r_lowerarm_pitch_1" reason="Never"/>
     <disable_collisions link1="abdomen_1" link2="r_shoulder_pitch_1" reason="Never"/>
     <disable_collisions link1="abdomen_1" link2="r_shoulder_roll_1" reason="Never"/>
     <disable_collisions link1="abdomen_1" link2="r_upperarm_yaw_1" reason="Never"/>
-    <disable_collisions link1="abdomen_1" link2="torso_1" reason="Adjacent"/>
-    <disable_collisions link1="base_link" link2="fixed_imu_1" reason="Never"/>
-    <disable_collisions link1="base_link" link2="fixed_mid_360_1" reason="Never"/>
+    <disable_collisions link1="base_link" link2="fixed_imu_1" reason="Adjacent"/>
+    <disable_collisions link1="base_link" link2="fixed_mid_360_1" reason="Adjacent"/>
     <disable_collisions link1="base_link" link2="l_lowerarm_pitch_1" reason="Never"/>
-    <disable_collisions link1="base_link" link2="l_shoulder_pitch_1" reason="Never"/>
+    <disable_collisions link1="base_link" link2="l_shoulder_pitch_1" reason="Adjacent"/>
     <disable_collisions link1="base_link" link2="l_shoulder_roll_1" reason="Never"/>
     <disable_collisions link1="base_link" link2="l_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="base_link" link2="neck_1" reason="Adjacent"/>
     <disable_collisions link1="base_link" link2="r_lowerarm_pitch_1" reason="Never"/>
-    <disable_collisions link1="base_link" link2="r_shoulder_pitch_1" reason="Never"/>
+    <disable_collisions link1="base_link" link2="r_shoulder_pitch_1" reason="Adjacent"/>
     <disable_collisions link1="base_link" link2="r_shoulder_roll_1" reason="Never"/>
     <disable_collisions link1="base_link" link2="r_upperarm_yaw_1" reason="Never"/>
-    <disable_collisions link1="base_link" link2="r_wrist_yaw_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="fixed_mid_360_1" reason="Never"/>
+    <disable_collisions link1="fixed_imu_1" link2="head_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="l_contact_sensor_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="l_hand_roll_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="l_index_distal_1" reason="Never"/>
@@ -144,16 +149,12 @@
     <disable_collisions link1="fixed_imu_1" link2="r_shoulder_pitch_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="r_shoulder_roll_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="r_thumb_distal_1" reason="Never"/>
-    <disable_collisions link1="fixed_imu_1" link2="r_thumb_middle_1" reason="Never"/>
-    <disable_collisions link1="fixed_imu_1" link2="r_thumb_proximal_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="r_thumb_roll_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="r_thumb_yaw_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="r_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="fixed_imu_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="fixed_imu_1" link2="torso_1" reason="Adjacent"/>
-    <disable_collisions link1="fixed_mid_360_1" link2="l_contact_sensor_1" reason="Never"/>
-    <disable_collisions link1="fixed_mid_360_1" link2="l_hand_roll_1" reason="Never"/>
+    <disable_collisions link1="fixed_mid_360_1" link2="head_1" reason="Never"/>
     <disable_collisions link1="fixed_mid_360_1" link2="l_index_distal_1" reason="Never"/>
     <disable_collisions link1="fixed_mid_360_1" link2="l_index_middle_1" reason="Never"/>
     <disable_collisions link1="fixed_mid_360_1" link2="l_index_proximal_1" reason="Never"/>
@@ -175,7 +176,6 @@
     <disable_collisions link1="fixed_mid_360_1" link2="l_thumb_roll_1" reason="Never"/>
     <disable_collisions link1="fixed_mid_360_1" link2="l_thumb_yaw_1" reason="Never"/>
     <disable_collisions link1="fixed_mid_360_1" link2="l_upperarm_yaw_1" reason="Never"/>
-    <disable_collisions link1="fixed_mid_360_1" link2="l_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="fixed_mid_360_1" link2="l_wrist_yaw_1" reason="Never"/>
     <disable_collisions link1="fixed_mid_360_1" link2="neck_1" reason="Never"/>
     <disable_collisions link1="fixed_mid_360_1" link2="r_contact_sensor_1" reason="Never"/>
@@ -203,7 +203,16 @@
     <disable_collisions link1="fixed_mid_360_1" link2="r_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="fixed_mid_360_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="fixed_mid_360_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="fixed_mid_360_1" link2="torso_1" reason="Adjacent"/>
+    <disable_collisions link1="head_1" link2="l_lowerarm_pitch_1" reason="Never"/>
+    <disable_collisions link1="head_1" link2="l_shoulder_pitch_1" reason="Never"/>
+    <disable_collisions link1="head_1" link2="l_shoulder_roll_1" reason="Never"/>
+    <disable_collisions link1="head_1" link2="l_upperarm_yaw_1" reason="Never"/>
+    <disable_collisions link1="head_1" link2="neck_1" reason="Adjacent"/>
+    <disable_collisions link1="head_1" link2="r_lowerarm_pitch_1" reason="Never"/>
+    <disable_collisions link1="head_1" link2="r_shoulder_pitch_1" reason="Never"/>
+    <disable_collisions link1="head_1" link2="r_shoulder_roll_1" reason="Never"/>
+    <disable_collisions link1="head_1" link2="r_upperarm_yaw_1" reason="Never"/>
+    <disable_collisions link1="head_1" link2="r_wrist_yaw_1" reason="Never"/>
     <disable_collisions link1="l_contact_sensor_1" link2="l_hand_roll_1" reason="Adjacent"/>
     <disable_collisions link1="l_contact_sensor_1" link2="l_index_distal_1" reason="Never"/>
     <disable_collisions link1="l_contact_sensor_1" link2="l_index_middle_1" reason="Never"/>
@@ -605,7 +614,6 @@
     <disable_collisions link1="l_lowerarm_pitch_1" link2="r_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="l_lowerarm_pitch_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="l_lowerarm_pitch_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="l_lowerarm_pitch_1" link2="torso_1" reason="Never"/>
     <disable_collisions link1="l_pinky_distal_1" link2="l_pinky_middle_1" reason="Adjacent"/>
     <disable_collisions link1="l_pinky_distal_1" link2="l_pinky_proximal_1" reason="Never"/>
     <disable_collisions link1="l_pinky_distal_1" link2="l_ring_distal_1" reason="Never"/>
@@ -869,7 +877,6 @@
     <disable_collisions link1="l_shoulder_pitch_1" link2="r_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="l_shoulder_pitch_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="l_shoulder_pitch_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="l_shoulder_pitch_1" link2="torso_1" reason="Adjacent"/>
     <disable_collisions link1="l_shoulder_roll_1" link2="l_thumb_distal_1" reason="Never"/>
     <disable_collisions link1="l_shoulder_roll_1" link2="l_thumb_middle_1" reason="Never"/>
     <disable_collisions link1="l_shoulder_roll_1" link2="l_thumb_proximal_1" reason="Never"/>
@@ -904,7 +911,6 @@
     <disable_collisions link1="l_shoulder_roll_1" link2="r_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="l_shoulder_roll_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="l_shoulder_roll_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="l_shoulder_roll_1" link2="torso_1" reason="Never"/>
     <disable_collisions link1="l_thumb_distal_1" link2="l_thumb_middle_1" reason="Adjacent"/>
     <disable_collisions link1="l_thumb_distal_1" link2="l_thumb_proximal_1" reason="Never"/>
     <disable_collisions link1="l_thumb_distal_1" link2="l_thumb_roll_1" reason="Never"/>
@@ -1088,7 +1094,6 @@
     <disable_collisions link1="l_upperarm_yaw_1" link2="r_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="l_upperarm_yaw_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="l_upperarm_yaw_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="l_upperarm_yaw_1" link2="torso_1" reason="Never"/>
     <disable_collisions link1="l_wrist_pitch_1" link2="l_wrist_yaw_1" reason="Adjacent"/>
     <disable_collisions link1="l_wrist_pitch_1" link2="neck_1" reason="Never"/>
     <disable_collisions link1="l_wrist_pitch_1" link2="r_contact_sensor_1" reason="Never"/>
@@ -1167,7 +1172,6 @@
     <disable_collisions link1="neck_1" link2="r_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="neck_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="neck_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="neck_1" link2="torso_1" reason="Adjacent"/>
     <disable_collisions link1="r_contact_sensor_1" link2="r_hand_roll_1" reason="Adjacent"/>
     <disable_collisions link1="r_contact_sensor_1" link2="r_index_distal_1" reason="Never"/>
     <disable_collisions link1="r_contact_sensor_1" link2="r_index_middle_1" reason="Never"/>
@@ -1335,7 +1339,6 @@
     <disable_collisions link1="r_lowerarm_pitch_1" link2="r_upperarm_yaw_1" reason="Adjacent"/>
     <disable_collisions link1="r_lowerarm_pitch_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="r_lowerarm_pitch_1" link2="r_wrist_yaw_1" reason="Adjacent"/>
-    <disable_collisions link1="r_lowerarm_pitch_1" link2="torso_1" reason="Never"/>
     <disable_collisions link1="r_pinky_distal_1" link2="r_pinky_middle_1" reason="Adjacent"/>
     <disable_collisions link1="r_pinky_distal_1" link2="r_pinky_proximal_1" reason="Never"/>
     <disable_collisions link1="r_pinky_distal_1" link2="r_ring_distal_1" reason="Never"/>
@@ -1391,6 +1394,7 @@
     <disable_collisions link1="r_ring_middle_1" link2="r_ring_proximal_1" reason="Adjacent"/>
     <disable_collisions link1="r_ring_middle_1" link2="r_shoulder_pitch_1" reason="Never"/>
     <disable_collisions link1="r_ring_middle_1" link2="r_shoulder_roll_1" reason="Never"/>
+    <disable_collisions link1="r_ring_middle_1" link2="r_thumb_distal_1" reason="Never"/>
     <disable_collisions link1="r_ring_middle_1" link2="r_thumb_middle_1" reason="Never"/>
     <disable_collisions link1="r_ring_middle_1" link2="r_thumb_proximal_1" reason="Never"/>
     <disable_collisions link1="r_ring_middle_1" link2="r_thumb_roll_1" reason="Never"/>
@@ -1417,7 +1421,6 @@
     <disable_collisions link1="r_shoulder_pitch_1" link2="r_upperarm_yaw_1" reason="Never"/>
     <disable_collisions link1="r_shoulder_pitch_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="r_shoulder_pitch_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="r_shoulder_pitch_1" link2="torso_1" reason="Adjacent"/>
     <disable_collisions link1="r_shoulder_roll_1" link2="r_thumb_distal_1" reason="Never"/>
     <disable_collisions link1="r_shoulder_roll_1" link2="r_thumb_middle_1" reason="Never"/>
     <disable_collisions link1="r_shoulder_roll_1" link2="r_thumb_proximal_1" reason="Never"/>
@@ -1426,7 +1429,6 @@
     <disable_collisions link1="r_shoulder_roll_1" link2="r_upperarm_yaw_1" reason="Adjacent"/>
     <disable_collisions link1="r_shoulder_roll_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="r_shoulder_roll_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="r_shoulder_roll_1" link2="torso_1" reason="Never"/>
     <disable_collisions link1="r_thumb_distal_1" link2="r_thumb_middle_1" reason="Adjacent"/>
     <disable_collisions link1="r_thumb_distal_1" link2="r_thumb_proximal_1" reason="Never"/>
     <disable_collisions link1="r_thumb_distal_1" link2="r_thumb_roll_1" reason="Never"/>
@@ -1454,6 +1456,5 @@
     <disable_collisions link1="r_thumb_yaw_1" link2="r_wrist_yaw_1" reason="Never"/>
     <disable_collisions link1="r_upperarm_yaw_1" link2="r_wrist_pitch_1" reason="Never"/>
     <disable_collisions link1="r_upperarm_yaw_1" link2="r_wrist_yaw_1" reason="Never"/>
-    <disable_collisions link1="r_upperarm_yaw_1" link2="torso_1" reason="Never"/>
     <disable_collisions link1="r_wrist_pitch_1" link2="r_wrist_yaw_1" reason="Adjacent"/>
 </robot>

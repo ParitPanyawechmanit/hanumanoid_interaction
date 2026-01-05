@@ -4,13 +4,11 @@ moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControll
 
 moveit_simple_controller_manager:
   controller_names:
-    - both_arms_controller
+    - both_arm_controller
 
-  both_arms_controller:
+  both_arm_controller:
     type: FollowJointTrajectory
     joints:
-      - Joint_neck_yaw
-      - Joint_neck_pitch
       - Joint_l_shoulder_pitch
       - Joint_l_shoulder_roll
       - Joint_l_shoulder_yaw
