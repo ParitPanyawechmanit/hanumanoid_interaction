@@ -1,0 +1,19 @@
+# Default initial positions for hanumanoid_interaction's ros2_control fake system
+
+initial_positions:
+  Joint_l_elbow_pitch: 0
+  Joint_l_shoulder_pitch: 0
+  Joint_l_shoulder_roll: 0
+  Joint_l_shoulder_yaw: 0
+  Joint_l_wrist_pitch: 0
+  Joint_l_wrist_roll: 0
+  Joint_l_wrist_yaw: 0
+  Joint_neck_pitch: 0
+  Joint_neck_yaw: 0
+  Joint_r_elbow_pitch: 0
+  Joint_r_shoulder_pitch: 0
+  Joint_r_shoulder_roll: 0
+  Joint_r_shoulder_yaw: 0
+  Joint_r_wrist_pitch: 0
+  Joint_r_wrist_roll: 0
+  Joint_r_wrist_yaw: 0

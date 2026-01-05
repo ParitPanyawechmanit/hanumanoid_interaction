@@ -1,0 +1,37 @@
+# This config file is used by ros2_control
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+
+    both_arms_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+both_arms_controller:
+  ros__parameters:
+    allow_partial_joints_goal: true
+    joints:
+      - Joint_neck_yaw
+      - Joint_neck_pitch
+      - Joint_l_shoulder_pitch
+      - Joint_l_shoulder_roll
+      - Joint_l_shoulder_yaw
+      - Joint_l_elbow_pitch
+      - Joint_l_wrist_yaw
+      - Joint_l_wrist_pitch
+      - Joint_l_wrist_roll
+      - Joint_r_shoulder_pitch
+      - Joint_r_shoulder_roll
+      - Joint_r_shoulder_yaw
+      - Joint_r_elbow_pitch
+      - Joint_r_wrist_yaw
+      - Joint_r_wrist_pitch
+      - Joint_r_wrist_roll
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity

@@ -1,0 +1,7 @@
+# ROS build
+build/
+install/
+log/
+
+# urdf files
+hanumanoid_interaction_description/
