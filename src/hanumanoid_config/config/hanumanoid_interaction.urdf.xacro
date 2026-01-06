@@ -7,8 +7,11 @@
 
     <!-- Import control_xacro -->
     <xacro:include filename="hanumanoid_interaction.ros2_control.xacro" />
+    <xacro:include filename="$(find hand_interaction_description)/ros2_control/hand_interaction_ros2_control.xacro" />
 
 
     <xacro:hanumanoid_interaction_ros2_control name="FakeSystem" initial_positions_file="$(arg initial_positions_file)"/>
+    <xacro:hand_interaction_ros2_control hand_side="r"/>
+    <xacro:hand_interaction_ros2_control hand_side="l"/>
 
 </robot>
