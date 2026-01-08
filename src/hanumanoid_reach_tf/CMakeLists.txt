@@ -18,6 +18,7 @@ find_package(shape_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
 
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -39,6 +40,7 @@ ament_target_dependencies(reach_tf
   shape_msgs
   sensor_msgs
   geometry_msgs
+  tf2_geometry_msgs
 )
 install(TARGETS reach_tf DESTINATION lib/${PROJECT_NAME})
 
