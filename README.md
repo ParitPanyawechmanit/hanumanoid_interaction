@@ -8,6 +8,7 @@ ros2 launch hanumanoid_config demo.launch.py
 cd ~/ros2_ws
 source /opt/ros/humble/setup.bash
 source install/setup.bash
+
 ros2 run realsense_listener yolo_node
 
 # In Terminal COLLISION
