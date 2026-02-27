@@ -1,19 +1,26 @@
 # In Terminal Moveit
 cd hanumanoid_interaction
+
 source /opt/ros/humble/setup.bash
+
 source ~/hanumanoid_interaction/install/setup.bash
+
 ros2 launch hanumanoid_config demo.launch.py
 
 # In Terminal YOLO
 cd ~/ros2_ws
+
 source /opt/ros/humble/setup.bash
+
 source install/setup.bash
 
 ros2 run realsense_listener yolo_node
 
 # In Terminal COLLISION
 source /opt/ros/humble/setup.bash
+
 source ~/hanumanoid_interaction/install/setup.bash
+
 python3 /home/parit/hanumanoid_interaction/src/target_collision_publisher_dynamic.py --ros-args \
   -p planning_frame:=base_link \
   -p target_frame:=Target_object \
@@ -22,7 +29,9 @@ python3 /home/parit/hanumanoid_interaction/src/target_collision_publisher_dynami
 
 # In Terminal for Run Reach_tf.py
 cd hanumanoid_interaction
+
 source /opt/ros/humble/setup.bash
+
 source ~/hanumanoid_interaction/install/setup.bash
 
 ros2 run hanumanoid_interaction_description reach_tf_py --ros-args \
