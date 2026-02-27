@@ -60,21 +60,8 @@ ros2 run hanumanoid_interaction_description reach_tf_py --ros-args \
 #Add Palm TF to URDF
 
 In "/home/parit/hanumanoid_interaction/src/hanumanoid_interaction_description/urdf/hanumanoid_interaction.urdf" 
-add these to make palm tf
-<link name="r_palm"/>
-  <joint name="r_palm_fixed" type="fixed">
-    <parent link="r_hand_roll_1"/>
-    <child link="r_palm"/>
-    <!-- adjust these -->
-    <origin xyz="-0.002 0.020 -0.120" rpy="0 0 0"/>
-  </joint>
-  <link name="l_palm"/>
-  <joint name="l_palm_fixed" type="fixed">
-    <parent link="l_hand_roll_1"/>
-    <child link="l_palm"/>
-     <!-- adjust these -->
-    <origin xyz="0.002 0.020 -0.120" rpy="0 0 0"/>
-      
+add r_palm and l_palm to make palm tf
+
 <img width="1905" height="1195" alt="image" src="https://github.com/user-attachments/assets/d77ac7e2-d520-4310-b915-d0c34d36f40e" />
 
 
