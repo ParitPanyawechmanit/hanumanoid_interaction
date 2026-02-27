@@ -47,7 +47,7 @@ ros2 run hanumanoid_interaction_description reach_tf_py --ros-args \
   -p lookat_yaw_step:=0.35 \
   -p ori_tol_x:=0.35 -p ori_tol_y:=0.35 -p ori_tol_z:=0.60
 
-#Config for Isaac sim
+# Config for Isaac sim
 
 -Choosing Tool -> Robotics -> Ros 2 OmniGraphs -> Joint States
 <img width="1452" height="947" alt="image" src="https://github.com/user-attachments/assets/85cb403b-359c-4ae5-8494-879ef1796528" />
@@ -57,7 +57,7 @@ ros2 run hanumanoid_interaction_description reach_tf_py --ros-args \
 -Set Subscriber Topic to "/isaac_joint_command"
 <img width="1452" height="947" alt="image" src="https://github.com/user-attachments/assets/718ee28a-9ea5-4415-bb2a-b1665404ee37" />
 
-#Add Palm TF to URDF
+# Add Palm TF to URDF
 
 In "/home/parit/hanumanoid_interaction/src/hanumanoid_interaction_description/urdf/hanumanoid_interaction.urdf" 
 add r_palm and l_palm to make palm tf
