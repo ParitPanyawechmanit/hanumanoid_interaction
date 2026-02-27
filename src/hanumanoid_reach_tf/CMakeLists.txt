@@ -16,7 +16,7 @@ find_package(rclcpp_action REQUIRED)
 find_package(moveit_msgs REQUIRED)
 find_package(shape_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
-
+find_package(vision_msgs REQUIRED)
 
 
 if(BUILD_TESTING)
@@ -41,6 +41,8 @@ ament_target_dependencies(reach_tf
   sensor_msgs
   geometry_msgs
   tf2_geometry_msgs
+  moveit_ros_planning_interface
+  vision_msgs
 )
 install(TARGETS reach_tf DESTINATION lib/${PROJECT_NAME})
 

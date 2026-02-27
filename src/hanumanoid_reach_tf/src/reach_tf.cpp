@@ -28,6 +28,7 @@
 #include <moveit_msgs/msg/position_constraint.hpp>
 #include <moveit_msgs/msg/orientation_constraint.hpp>
 #include <moveit_msgs/msg/joint_constraint.hpp>
+#include <moveit_msgs/msg/collision_object.hpp>
 
 #include <shape_msgs/msg/solid_primitive.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
@@ -81,6 +82,15 @@ static inline geometry_msgs::msg::Quaternion toMsgQuat(const tf2::Quaternion& q_
 static inline bool quat_ok(const tf2::Quaternion& q) {
   return is_finite(q.x()) && is_finite(q.y()) && is_finite(q.z()) && is_finite(q.w())
       && !(std::abs(q.x()) < 1e-12 && std::abs(q.y()) < 1e-12 && std::abs(q.z()) < 1e-12 && std::abs(q.w()) < 1e-12);
+}
+
+// Smallest-angle distance between 2 quaternions (radians). Robust to sign flips.
+static inline double quat_distance_rad(const tf2::Quaternion& a_in, const tf2::Quaternion& b_in) {
+  tf2::Quaternion a = a_in; tf2::Quaternion b = b_in;
+  a.normalize(); b.normalize();
+  double dot = std::abs(a.x()*b.x() + a.y()*b.y() + a.z()*b.z() + a.w()*b.w());
+  dot = std::min(1.0, std::max(0.0, dot));
+  return 2.0 * std::acos(dot);
 }
 
 // Project v onto plane perpendicular to n (n must be unit)
@@ -279,6 +289,14 @@ int main(int argc, char** argv)
   node->declare_parameter<std::string>("eef_link", "l_palm");
   node->declare_parameter<std::string>("move_action", "move_action");
 
+  // TCP support: plan with eef_link, but make the target refer to tcp_link center
+  node->declare_parameter<std::string>("tcp_link", "");  // e.g. "l_palm"
+  node->declare_parameter<bool>("goal_is_tcp", true);    // if true, goal point is TCP (palm center)
+  node->declare_parameter<std::vector<double>>("tcp_offset_xyz", std::vector<double>{0.0, 0.0, 0.0});
+  // tcp_offset_xyz is EEF->TCP translation expressed in EEF frame, used as fallback if TF lookup fails.
+  // Example from your tf2_echo: [0.002, 0.020, -0.120]
+
+
   node->declare_parameter<bool>("offset_in_target_frame", true);
   node->declare_parameter<double>("offset_x", 0.0);
   node->declare_parameter<double>("offset_y", 0.0);
@@ -288,6 +306,19 @@ int main(int argc, char** argv)
   node->declare_parameter<double>("min_offset_z", 0.02);
   node->declare_parameter<double>("max_offset_z", 0.20);
   node->declare_parameter<double>("offset_step_z", 0.01);
+
+// approach-axis offset (optional)
+// When enabled, offset_z is treated as "stand-off along approach_axis"
+// If offset_in_target_frame=true, axes are interpreted in target frame; otherwise in planning frame.
+node->declare_parameter<bool>("use_approach_axis", false);
+node->declare_parameter<std::string>("approach_axis", "-x");      // +x|-x|+y|-y|+z|-z
+node->declare_parameter<std::string>("approach_up_axis", "+z");   // used to stabilize roll around approach axis
+node->declare_parameter<double>("approach_extra", 0.0);           // meters added to standoff (pushes goal further out)
+
+// align orientation (ori_mode=align)
+// align_eef_axis: which EE axis should point along approach_axis. "auto" maps left_arm:+x, right_arm:-x
+node->declare_parameter<std::string>("align_eef_axis", "auto");
+node->declare_parameter<std::string>("align_eef_up_axis", "+z");
 
   node->declare_parameter<double>("radius", 0.06);
   node->declare_parameter<double>("planning_time", 10.0);
@@ -311,6 +342,14 @@ int main(int argc, char** argv)
   node->declare_parameter<std::string>("lookat_up_axis", "+y");
   node->declare_parameter<double>("lookat_yaw_sweep", 0.0);     // total sweep (rad), e.g. pi
   node->declare_parameter<double>("lookat_yaw_step", 0.349066); // 20deg
+// target collision object (prevents fingers / hand from hitting target during approach)
+node->declare_parameter<bool>("add_target_collision", true);
+node->declare_parameter<std::string>("target_collision_id", "target_object");
+node->declare_parameter<std::string>("target_shape", "box"); // box|cylinder|sphere
+node->declare_parameter<std::vector<double>>("target_size", std::vector<double>{0.05, 0.05, 0.05});
+// box: [x,y,z] (m), cylinder: [radius,height], sphere: [radius]
+node->declare_parameter<double>("target_padding", 0.01); // inflate (m)
+
 
   // -------- read params --------
   const auto group = node->get_parameter("group").as_string();
@@ -319,6 +358,10 @@ int main(int argc, char** argv)
   std::string eef_link = node->get_parameter("eef_link").as_string();
   const auto move_action_name = node->get_parameter("move_action").as_string();
 
+  const auto tcp_link = node->get_parameter("tcp_link").as_string();
+  const bool goal_is_tcp = node->get_parameter("goal_is_tcp").as_bool();
+  const auto tcp_offset_xyz = node->get_parameter("tcp_offset_xyz").as_double_array();
+
   const bool offset_in_target_frame = node->get_parameter("offset_in_target_frame").as_bool();
   const double ox = node->get_parameter("offset_x").as_double();
   const double oy = node->get_parameter("offset_y").as_double();
@@ -326,6 +369,11 @@ int main(int argc, char** argv)
   const double min_oz = node->get_parameter("min_offset_z").as_double();
   const double max_oz = node->get_parameter("max_offset_z").as_double();
   const double step_oz = node->get_parameter("offset_step_z").as_double();
+
+const bool use_approach_axis = node->get_parameter("use_approach_axis").as_bool();
+const auto approach_axis_str = node->get_parameter("approach_axis").as_string();
+const auto approach_up_axis_str = node->get_parameter("approach_up_axis").as_string();
+const double approach_extra = node->get_parameter("approach_extra").as_double();
 
   const double radius = node->get_parameter("radius").as_double();
   const double planning_time = node->get_parameter("planning_time").as_double();
@@ -347,6 +395,15 @@ int main(int argc, char** argv)
   const auto up_axis_str  = node->get_parameter("lookat_up_axis").as_string();
   const double yaw_sweep = node->get_parameter("lookat_yaw_sweep").as_double();
   const double yaw_step  = node->get_parameter("lookat_yaw_step").as_double();
+const auto align_eef_axis_str = trim_copy(node->get_parameter("align_eef_axis").as_string());
+const auto align_eef_up_axis_str = trim_copy(node->get_parameter("align_eef_up_axis").as_string());
+// target collision settings
+const bool add_target_collision = node->get_parameter("add_target_collision").as_bool();
+const auto target_collision_id = node->get_parameter("target_collision_id").as_string();
+const auto target_shape = trim_copy(node->get_parameter("target_shape").as_string());
+const auto target_size = node->get_parameter("target_size").as_double_array();
+const double target_padding = node->get_parameter("target_padding").as_double();
+
 
   if (group == "right_arm" && eef_link == "l_palm") eef_link = "r_palm";
 
@@ -355,6 +412,9 @@ int main(int argc, char** argv)
   RCLCPP_INFO(node->get_logger(), "Target frame: %s", target_frame.c_str());
   RCLCPP_INFO(node->get_logger(), "Requested planning_frame: %s", planning_frame.c_str());
   RCLCPP_INFO(node->get_logger(), "move_action: %s", move_action_name.c_str());
+RCLCPP_INFO(node->get_logger(), "add_target_collision: %s (shape=%s, padding=%.3f m)",
+            add_target_collision ? "true" : "false", target_shape.c_str(), target_padding);
+
   RCLCPP_INFO(node->get_logger(), "offset_in_target_frame: %s", offset_in_target_frame ? "true" : "false");
   RCLCPP_INFO(node->get_logger(), "use_orientation: %s, ori_mode: %s", use_orientation ? "true" : "false", ori_mode.c_str());
 
@@ -428,6 +488,65 @@ int main(int argc, char** argv)
   );
   q_t.normalize();
 
+  // -------- TCP offset: EEF <- TCP (transform from tcp_link to eef_link) --------
+  tf2::Vector3 t_eef_tcp(0,0,0);          // tcp origin expressed in eef frame
+  tf2::Quaternion q_eef_tcp(0,0,0,1);     // tcp orientation expressed in eef frame
+  bool have_tcp_tf = false;
+
+  if (goal_is_tcp) {
+    if (!tcp_link.empty() && tcp_link != eef_link) {
+      for (int i = 0; i < 100 && rclcpp::ok(); ++i) {
+        try {
+          auto T = tf_buffer.lookupTransform(eef_link, tcp_link, tf2::TimePointZero);
+          t_eef_tcp = tf2::Vector3(T.transform.translation.x,
+                                  T.transform.translation.y,
+                                  T.transform.translation.z);
+          q_eef_tcp = tf2::Quaternion(T.transform.rotation.x,
+                                      T.transform.rotation.y,
+                                      T.transform.rotation.z,
+                                      T.transform.rotation.w);
+          q_eef_tcp.normalize();
+          have_tcp_tf = true;
+          break;
+        } catch (...) {
+          exec.spin_some();
+          std::this_thread::sleep_for(20ms);
+        }
+      }
+
+      if (have_tcp_tf) {
+        RCLCPP_INFO(node->get_logger(),
+                    "TCP enabled: using TF %s<- %s: t=[%.3f %.3f %.3f], q=[%.3f %.3f %.3f %.3f]",
+                    eef_link.c_str(), tcp_link.c_str(),
+                    t_eef_tcp.x(), t_eef_tcp.y(), t_eef_tcp.z(),
+                    q_eef_tcp.x(), q_eef_tcp.y(), q_eef_tcp.z(), q_eef_tcp.w());
+      } else {
+        RCLCPP_WARN(node->get_logger(),
+                    "TCP enabled: TF lookup %s<- %s failed. Will try tcp_offset_xyz param.",
+                    eef_link.c_str(), tcp_link.c_str());
+      }
+    }
+
+    // fallback translation only (rotation assumed identity)
+    if (!have_tcp_tf && tcp_offset_xyz.size() == 3) {
+      tf2::Vector3 off_param(tcp_offset_xyz[0], tcp_offset_xyz[1], tcp_offset_xyz[2]);
+      if (off_param.length2() > 1e-12) {
+        t_eef_tcp = off_param;
+        q_eef_tcp = tf2::Quaternion(0,0,0,1);
+        have_tcp_tf = true;
+        RCLCPP_INFO(node->get_logger(),
+                    "TCP enabled: using tcp_offset_xyz translation only, q=identity");
+      }
+    }
+
+    if (!have_tcp_tf) {
+      RCLCPP_WARN(node->get_logger(),
+                  "TCP enabled but no TF/offset found. TCP correction disabled.");
+    }
+  }
+
+
+
   // -------- MoveGroup action client --------
   auto client = rclcpp_action::create_client<MoveGroup>(node, move_action_name);
   if (!client->wait_for_action_server(5s)) {
@@ -450,6 +569,53 @@ int main(int argc, char** argv)
     goal.planning_options.look_around = false;
     goal.planning_options.replan = false;
     goal.planning_options.planning_scene_diff.is_diff = true;
+// Add target as a collision object to prevent the hand/fingers from clipping the target
+// NOTE: pose uses p_t in planning_frame; we keep orientation identity to avoid depending on Target_object rotation.
+if (add_target_collision) {
+  moveit_msgs::msg::CollisionObject co;
+  co.id = target_collision_id;
+  co.header.frame_id = planning_frame;
+  co.operation = moveit_msgs::msg::CollisionObject::ADD;
+
+  shape_msgs::msg::SolidPrimitive prim;
+
+  // Inflate the target by target_padding (safety margin)
+  if (target_shape == "box") {
+    std::vector<double> sz = target_size;
+    if (sz.size() < 3) sz = {0.05, 0.05, 0.05};
+    prim.type = shape_msgs::msg::SolidPrimitive::BOX;
+    prim.dimensions.resize(3);
+    prim.dimensions[shape_msgs::msg::SolidPrimitive::BOX_X] = sz[0] + 2.0 * target_padding;
+    prim.dimensions[shape_msgs::msg::SolidPrimitive::BOX_Y] = sz[1] + 2.0 * target_padding;
+    prim.dimensions[shape_msgs::msg::SolidPrimitive::BOX_Z] = sz[2] + 2.0 * target_padding;
+  } else if (target_shape == "cylinder") {
+    std::vector<double> sz = target_size;
+    if (sz.size() < 2) sz = {0.03, 0.10};
+    prim.type = shape_msgs::msg::SolidPrimitive::CYLINDER;
+    prim.dimensions.resize(2);
+    prim.dimensions[shape_msgs::msg::SolidPrimitive::CYLINDER_RADIUS] = sz[0] + target_padding;
+    prim.dimensions[shape_msgs::msg::SolidPrimitive::CYLINDER_HEIGHT] = sz[1] + 2.0 * target_padding;
+  } else { // sphere
+    std::vector<double> sz = target_size;
+    if (sz.size() < 1) sz = {0.04};
+    prim.type = shape_msgs::msg::SolidPrimitive::SPHERE;
+    prim.dimensions.resize(1);
+    prim.dimensions[shape_msgs::msg::SolidPrimitive::SPHERE_RADIUS] = sz[0] + target_padding;
+  }
+
+  geometry_msgs::msg::Pose pose;
+  pose.position.x = p_t.x();
+  pose.position.y = p_t.y();
+  pose.position.z = p_t.z();
+  pose.orientation.w = 1.0;
+
+  co.primitives.push_back(prim);
+  co.primitive_poses.push_back(pose);
+
+  goal.planning_options.planning_scene_diff.world.collision_objects.push_back(co);
+  goal.planning_options.planning_scene_diff.is_diff = true;
+}
+
 
     auto gh_f = client->async_send_goal(goal);
     if (exec.spin_until_future_complete(gh_f, 10s) != rclcpp::FutureReturnCode::SUCCESS) return {false, -1000};
@@ -472,7 +638,13 @@ int main(int argc, char** argv)
     return {ok, code};
   };
 
-  auto exec_goal = [&](const moveit_msgs::msg::Constraints& c) -> std::pair<bool,int> {
+  // During candidate search we always do plan_only=true to avoid moving the robot multiple times.
+  auto test_goal = [&](const moveit_msgs::msg::Constraints& c) -> std::pair<bool,int> {
+    return send_goal(c, /*plan_only=*/true);
+  };
+
+  // Final goal follows the 'execute' parameter (plan_only when execute=false).
+  auto final_goal = [&](const moveit_msgs::msg::Constraints& c) -> std::pair<bool,int> {
     return send_goal(c, /*plan_only=*/!execute);
   };
 
@@ -523,109 +695,302 @@ int main(int argc, char** argv)
     ee_up = tf2::Vector3(0,1,0);
   }
 
-  // -------- search: offset_z (and yaw if lookat) --------
+  
+// -------- approach/align basis (derived from target TF axes) --------
+// Parse approach axis strings (in base coords = target frame if offset_in_target_frame, else planning frame)
+bool ap_ok=false, apu_ok=false;
+tf2::Vector3 approach_axis_base = axis_from_string(approach_axis_str, &ap_ok);
+tf2::Vector3 approach_up_base   = axis_from_string(approach_up_axis_str, &apu_ok);
+if (!ap_ok) {
+  RCLCPP_WARN(node->get_logger(), "approach_axis parse failed: '%s'. Using -x.", approach_axis_str.c_str());
+  approach_axis_base = tf2::Vector3(-1,0,0);
+}
+if (!apu_ok) {
+  RCLCPP_WARN(node->get_logger(), "approach_up_axis parse failed: '%s'. Using +z.", approach_up_axis_str.c_str());
+  approach_up_base = tf2::Vector3(0,0,1);
+}
+
+// Build an orthonormal basis: {approach, up, side} in the "base" frame (target or planning)
+auto make_basis = [&](const tf2::Vector3& approach_in, const tf2::Vector3& up_hint_in,
+                      tf2::Vector3& approach_unit, tf2::Vector3& up_unit, tf2::Vector3& side_unit) {
+  approach_unit = approach_in;
+  if (approach_unit.length2() < 1e-12) approach_unit = tf2::Vector3(-1,0,0);
+  approach_unit.normalize();
+
+  tf2::Vector3 up_proj = project_to_plane(up_hint_in, approach_unit);
+  if (up_proj.length2() < 1e-12) {
+    // choose a fallback up hint not parallel to approach
+    tf2::Vector3 alt(0,0,1);
+    if (std::abs(approach_unit.dot(alt)) > 0.9) alt = tf2::Vector3(0,1,0);
+    up_proj = project_to_plane(alt, approach_unit);
+  }
+  up_unit = up_proj;
+  up_unit.normalize();
+
+  side_unit = approach_unit.cross(up_unit);
+  if (side_unit.length2() < 1e-12) side_unit = tf2::Vector3(1,0,0);
+  side_unit.normalize();
+
+  // re-orthonormalize up to guarantee orthogonality
+  up_unit = side_unit.cross(approach_unit);
+  if (up_unit.length2() < 1e-12) up_unit = tf2::Vector3(0,0,1);
+  up_unit.normalize();
+};
+
+tf2::Vector3 approach_base_u, up_base_u, side_base_u;
+make_basis(approach_axis_base, approach_up_base, approach_base_u, up_base_u, side_base_u);
+
+// Same basis expressed in planning frame (world) for orientation alignment
+tf2::Vector3 approach_world_u, up_world_u, side_world_u;
+if (offset_in_target_frame) {
+  tf2::Matrix3x3 Rt(q_t);
+  make_basis(Rt * approach_axis_base, Rt * approach_up_base, approach_world_u, up_world_u, side_world_u);
+} else {
+  make_basis(approach_axis_base, approach_up_base, approach_world_u, up_world_u, side_world_u);
+}
+
+// Parse align EE axes
+auto resolve_auto_axis = [&](const std::string& s) -> tf2::Vector3 {
+  std::string ss = trim_copy(s);
+  for (auto &c : ss) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+  if (ss == "auto") {
+    if (group == "left_arm") return tf2::Vector3(1,0,0);   // l_palm side is +x
+    if (group == "right_arm") return tf2::Vector3(-1,0,0); // r_palm side is -x
+    return tf2::Vector3(1,0,0);
+  }
+  bool ok=false;
+  auto v = axis_from_string(ss, &ok);
+  if (!ok) return tf2::Vector3(1,0,0);
+  return v;
+};
+
+tf2::Vector3 ee_align = resolve_auto_axis(align_eef_axis_str);
+bool eua_ok=false;
+tf2::Vector3 ee_align_up = axis_from_string(align_eef_up_axis_str, &eua_ok);
+if (!eua_ok) ee_align_up = tf2::Vector3(0,0,1);
+// If up is parallel to align axis, choose a safe fallback
+if (std::abs(ee_align.dot(ee_align_up)) > 0.9) {
+  ee_align_up = tf2::Vector3(0,0,1);
+  if (std::abs(ee_align.dot(ee_align_up)) > 0.9) ee_align_up = tf2::Vector3(0,1,0);
+}
+// -------- search: offset_z (and yaw if lookat) --------
   bool found = false;
   double chosen_oz = oz0;
   double chosen_yaw = 0.0;
   int last_code = -1;
+
+  // Current EE orientation (for scoring). If TF is missing we still work, just with less stable selection.
+  bool have_eef_now = false;
+  tf2::Quaternion q_eef_now(0,0,0,1);
+  try {
+    auto tf_eef = tf_buffer.lookupTransform(planning_frame, eef_link, tf2::TimePointZero);    q_eef_now = tf2::Quaternion(tf_eef.transform.rotation.x, tf_eef.transform.rotation.y, tf_eef.transform.rotation.z, tf_eef.transform.rotation.w);
+    q_eef_now.normalize();
+    have_eef_now = quat_ok(q_eef_now);
+  } catch (...) {
+    have_eef_now = false;
+  }
+
+  // Candidate tracking (lowest score wins). We keep a few best candidates to retry execution if needed.
+  struct Candidate {
+    double score;
+    moveit_msgs::msg::Constraints c;
+    double oz;
+    double yaw;
+  };
+  std::vector<Candidate> good;
+  good.reserve(64);
 
   for (double oz_try : oz_list) {
     if (!rclcpp::ok()) break;
 
     // goal position
     tf2::Vector3 goal_pos = p_t;
-    if (offset_in_target_frame) {
-      // apply offset in target frame using target rotation
-      tf2::Matrix3x3 Rt(q_t);
-      tf2::Vector3 off_t(ox, oy, oz_try);
-      tf2::Vector3 off_w = Rt * off_t;
-      goal_pos = p_t + off_w;
-    } else {
-      goal_pos = p_t + tf2::Vector3(ox, oy, oz_try);
-    }
-
-    // Without orientation: just test once
-    if (!use_orientation) {
-      auto c = make_position_goal(planning_frame, eef_link, goal_pos.x(), goal_pos.y(), goal_pos.z(), radius);
-      auto [ok, code] = exec_goal(c);
-      last_code = code;
-      RCLCPP_INFO(node->get_logger(), "Test offset_z=%.3f -> %s(code=%d)",
-                  oz_try, ok ? "SUCCESS" : "FAILURE", code);
-      if (ok) { chosen_oz = oz_try; found = true; break; }
-      continue;
-    }
-
-    // With orientation:
-    for (double yaw_add : yaw_list) {
-      if (!rclcpp::ok()) break;
-
-      tf2::Quaternion q_des(0,0,0,0);
-      bool q_ok = false;
-
-      if (ori_mode == "fixed") {
-        // fixed orientation = only offsets (in planning frame)
-        q_des.setRPY(0,0,0);
-        q_des.normalize();
-        q_des = q_des * q_off;
-        q_des.normalize();
-        q_ok = quat_ok(q_des);
-      }
-      else if (ori_mode == "target") {
-        // use target frame orientation, then apply offsets
-        q_des = q_t;
-        q_des.normalize();
-        q_des = q_des * q_off;
-        q_des.normalize();
-        q_ok = quat_ok(q_des);
-      }
-      else if (ori_mode == "lookat") {
-        // look direction: from base (planning origin) to target (works even if eef TF isn't published)
-        tf2::Vector3 dir = p_t;
-        if (dir.length2() < 1e-12) dir = tf2::Vector3(0,0,1);
-        dir.normalize();
-
-        tf2::Vector3 world_up(0,0,1);
-        q_des = make_lookat_quat(dir, world_up, ee_fwd, ee_up, yaw_add, &q_ok);
-        if (q_ok) {
-          // apply local rpy offsets (ee frame)
-          q_des = q_des * q_off;
-          q_des.normalize();
-          q_ok = quat_ok(q_des);
-        }
-      }
-      else {
-        RCLCPP_WARN(node->get_logger(), "Unknown ori_mode='%s' (use fixed|target|lookat). Treating as fixed.",
-                    ori_mode.c_str());
-        q_des.setRPY(0,0,0);
-        q_des.normalize();
-        q_des = q_des * q_off;
-        q_des.normalize();
-        q_ok = quat_ok(q_des);
-      }
-
-      if (!q_ok) {
-        RCLCPP_WARN(node->get_logger(), "Skip candidate: invalid quaternion (oz=%.3f yaw_add=%.3f)", oz_try, yaw_add);
-        continue;
-      }
-
-      auto c = make_position_goal(planning_frame, eef_link, goal_pos.x(), goal_pos.y(), goal_pos.z(), radius);
-      add_orientation_constraint(c, planning_frame, eef_link, q_des, tol_x, tol_y, tol_z, 1.0);
-
-      auto [ok, code] = exec_goal(c);
-      last_code = code;
-      RCLCPP_INFO(node->get_logger(), "Test offset_z=%.3f yaw_add=%.3f -> %s(code=%d)",
-                  oz_try, yaw_add, ok ? "SUCCESS" : "FAILURE", code);
-
-      if (ok) {
-        chosen_oz = oz_try;
-        chosen_yaw = yaw_add;
-        found = true;
-        break;
-      }
-    }
-
-    if (found) break;
+    if (use_approach_axis) {
+  if (offset_in_target_frame) {
+    // Build offset in target frame basis: side/up/approach, then rotate to planning frame
+    tf2::Matrix3x3 Rt(q_t);
+    tf2::Vector3 off_t = side_base_u * ox + up_base_u * oy + approach_base_u * (oz_try + approach_extra);
+    tf2::Vector3 off_w = Rt * off_t;
+    goal_pos = p_t + off_w;
+  } else {
+    // Offsets already in planning frame basis
+    tf2::Vector3 off_w = side_world_u * ox + up_world_u * oy + approach_world_u * (oz_try + approach_extra);
+    goal_pos = p_t + off_w;
   }
+} else if (offset_in_target_frame) {
+  // apply offset in target frame using target rotation
+  tf2::Matrix3x3 Rt(q_t);
+  tf2::Vector3 off_t(ox, oy, oz_try);
+  tf2::Vector3 off_w = Rt * off_t;
+  goal_pos = p_t + off_w;
+} else {
+  goal_pos = p_t + tf2::Vector3(ox, oy, oz_try);
+}
+
+        // Without orientation: position-only. Score prefers oz closest to requested oz.
+        if (!use_orientation) {
+          tf2::Vector3 goal_pos_eef = goal_pos;
+
+          if (goal_is_tcp && have_tcp_tf) {
+            tf2::Quaternion q_use(0,0,0,1);
+            if (have_eef_now) q_use = q_eef_now;
+            tf2::Matrix3x3 R(q_use);
+            tf2::Vector3 off_world = R * t_eef_tcp;
+            goal_pos_eef = goal_pos - off_world;
+          }
+
+
+          auto c = make_position_goal(planning_frame, eef_link,
+                                      goal_pos_eef.x(), goal_pos_eef.y(), goal_pos_eef.z(),
+                                      radius);
+
+
+          auto [ok, code] = test_goal(c);
+          last_code = code;
+          RCLCPP_INFO(node->get_logger(), "Candidate offset_z=%.3f -> %s(code=%d)",
+                      oz_try, ok ? "SUCCESS" : "FAILURE", code);
+
+          if (ok) {
+            const double score = std::abs(oz_try - oz_req);
+            good.push_back({score, c, oz_try, 0.0});
+          }
+          continue;
+        }
+
+        // With orientation: evaluate all yaw candidates (plan-only), then pick the best by score.
+        for (double yaw_add : yaw_list) {
+          if (!rclcpp::ok()) break;
+
+          tf2::Quaternion q_des(0,0,0,0);
+          bool q_ok = false;
+
+          if (ori_mode == "fixed") {
+            // fixed orientation = only offsets (in planning frame)
+            q_des.setRPY(0,0,0);
+            q_des.normalize();
+            q_des = q_des * q_off;
+            q_des.normalize();
+            q_ok = quat_ok(q_des);
+          }
+          else if (ori_mode == "target") {
+            // use target frame orientation, then apply offsets
+            q_des = q_t;
+            q_des.normalize();
+            q_des = q_des * q_off;
+            q_des.normalize();
+            q_ok = quat_ok(q_des);
+          }
+          else if (ori_mode == "align") {
+            // Align a chosen EE axis (default: left +x, right -x) to the approach axis of the target.
+            // approach_world_u / up_world_u already represent a stable basis in planning frame.
+            tf2::Vector3 dir = approach_world_u;
+            if (dir.length2() < 1e-12) dir = tf2::Vector3(-1,0,0);
+            dir.normalize();
+
+            tf2::Vector3 world_up = up_world_u;
+            if (world_up.length2() < 1e-12) world_up = tf2::Vector3(0,0,1);
+            world_up = project_to_plane(world_up, dir);
+            if (world_up.length2() < 1e-12) world_up = project_to_plane(tf2::Vector3(0,0,1), dir);
+            if (world_up.length2() < 1e-12) world_up = project_to_plane(tf2::Vector3(0,1,0), dir);
+            world_up.normalize();
+
+            q_des = make_lookat_quat(dir, world_up, ee_align, ee_align_up, yaw_add, &q_ok);
+            if (q_ok) {
+              q_des = q_des * q_off;
+              q_des.normalize();
+              q_ok = quat_ok(q_des);
+            }
+          }
+          else if (ori_mode == "lookat") {
+            // look direction: from desired EE goal position to target center (stable across different start poses)
+            tf2::Vector3 goal_v(goal_pos.x(), goal_pos.y(), goal_pos.z());
+            tf2::Vector3 dir = p_t - goal_v;  // goal -> target
+            if (dir.length2() < 1e-12) dir = p_t;
+            if (dir.length2() < 1e-12) dir = tf2::Vector3(0,0,1);
+            dir.normalize();
+
+            tf2::Vector3 world_up(0,0,1);
+            q_des = make_lookat_quat(dir, world_up, ee_fwd, ee_up, yaw_add, &q_ok);
+            if (q_ok) {
+              // apply local rpy offsets (ee frame)
+              q_des = q_des * q_off;
+              q_des.normalize();
+              q_ok = quat_ok(q_des);
+            }
+          }
+          else {
+            RCLCPP_WARN(node->get_logger(), "Unknown ori_mode='%s' (use fixed|target|lookat|align). Treating as fixed.",
+                        ori_mode.c_str());
+            q_des.setRPY(0,0,0);
+            q_des.normalize();
+            q_des = q_des * q_off;
+            q_des.normalize();
+            q_ok = quat_ok(q_des);
+          }
+
+          if (!q_ok) {
+            RCLCPP_WARN(node->get_logger(), "Skip candidate (invalid quaternion) offset_z=%.3f yaw_add=%.3f", oz_try, yaw_add);
+            continue;
+          }
+
+          tf2::Vector3 goal_pos_eef = goal_pos;
+          if (goal_is_tcp && have_tcp_tf) {
+            tf2::Matrix3x3 R(q_des);                // use desired orientation
+            tf2::Vector3 off_world = R * t_eef_tcp;
+            goal_pos_eef = goal_pos - off_world;    // shift EEF so TCP lands at goal_pos
+          }
+
+          auto c = make_position_goal(planning_frame, eef_link,
+                                      goal_pos_eef.x(), goal_pos_eef.y(), goal_pos_eef.z(),
+                                      radius);
+
+          add_orientation_constraint(c, planning_frame, eef_link, q_des, tol_x, tol_y, tol_z, 1.0);
+
+
+
+          auto [ok, code] = test_goal(c);
+          last_code = code;
+          RCLCPP_INFO(node->get_logger(), "Candidate offset_z=%.3f yaw_add=%.3f -> %s(code=%d)",
+                      oz_try, yaw_add, ok ? "SUCCESS" : "FAILURE", code);
+
+          if (ok) {
+            // Score prefers: minimal wrist rotation (avoid flips) + minimal extra yaw + minimal oz deviation.
+            double score = 0.0;
+            if (have_eef_now) score += 2.0 * quat_distance_rad(q_des, q_eef_now);
+            score += 0.2 * std::abs(yaw_add);
+            score += 0.05 * std::abs(oz_try - oz_req);
+
+            good.push_back({score, c, oz_try, yaw_add});
+          }
+        }
+
+        // keep searching (oz_list is center-first, so we usually find good candidates early)
+  }
+
+  // Pick the best candidates and execute (or plan-only) once.
+  if (!good.empty()) {
+    std::sort(good.begin(), good.end(),
+              [](const Candidate& a, const Candidate& b) { return a.score < b.score; });
+
+    const int tries = std::min<int>(3, static_cast<int>(good.size()));
+    for (int i = 0; i < tries && rclcpp::ok(); ++i) {
+      chosen_oz = good[i].oz;
+      chosen_yaw = good[i].yaw;
+
+      RCLCPP_INFO(node->get_logger(),
+                  "Selected candidate %d/%d: score=%.4f offset_z=%.3f yaw_add=%.3f (execute=%s)",
+                  i + 1, tries, good[i].score, chosen_oz, chosen_yaw, execute ? "true" : "false");
+
+      auto [ok, code] = final_goal(good[i].c);
+      last_code = code;
+
+      if (ok) { found = true; break; }
+
+      RCLCPP_WARN(node->get_logger(),
+                  "Selected candidate failed at execution stage (code=%d). Trying next (if any)...", code);
+    }
+  }
+
 
   if (!found) {
     RCLCPP_ERROR(node->get_logger(), "No valid plan found. Last error code=%d", last_code);
@@ -661,7 +1026,7 @@ int main(int argc, char** argv)
       jc.joint_constraints.push_back(j);
     }
 
-    auto [back_ok, back_code] = exec_goal(jc);
+    auto [back_ok, back_code] = final_goal(jc);
     RCLCPP_INFO(node->get_logger(), "Return-to-start: %s(code=%d)", back_ok ? "SUCCESS" : "FAILURE", back_code);
   }
 

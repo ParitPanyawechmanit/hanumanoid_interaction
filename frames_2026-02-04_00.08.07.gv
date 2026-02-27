@@ -1,0 +1,31 @@
+digraph G {
+"World" -> "base_link"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"l_hand_roll_1" -> "l_contact_sensor_1"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"l_wrist_pitch_1" -> "l_hand_roll_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"r_hand_roll_1" -> "r_contact_sensor_1"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"r_wrist_pitch_1" -> "r_hand_roll_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"base_link" -> "fixed_imu_1"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"base_link" -> "fixed_mid_360_1"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"l_hand_roll_1" -> "l_palm"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"r_hand_roll_1" -> "r_palm"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"camera_link" -> "camera_depth_frame"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"camera_depth_frame" -> "camera_depth_optical_frame"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"camera_link" -> "camera_color_frame"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"camera_color_frame" -> "camera_color_optical_frame"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"l_upperarm_yaw_1" -> "l_lowerarm_pitch_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"l_shoulder_roll_1" -> "l_upperarm_yaw_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"base_link" -> "l_shoulder_pitch_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"l_shoulder_pitch_1" -> "l_shoulder_roll_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"l_wrist_yaw_1" -> "l_wrist_pitch_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"l_lowerarm_pitch_1" -> "l_wrist_yaw_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"r_upperarm_yaw_1" -> "r_lowerarm_pitch_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"r_shoulder_roll_1" -> "r_upperarm_yaw_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"base_link" -> "r_shoulder_pitch_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"r_shoulder_pitch_1" -> "r_shoulder_roll_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"r_wrist_yaw_1" -> "r_wrist_pitch_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+"r_lowerarm_pitch_1" -> "r_wrist_yaw_1"[label=" Broadcaster: default_authority\nAverage rate: 14.487\nBuffer length: 4.97\nMost recent transform: 1770138487.000525\nOldest transform: 1770138482.030558\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1770138487.012777"[ shape=plaintext ] ;
+}->"camera_link";
+}

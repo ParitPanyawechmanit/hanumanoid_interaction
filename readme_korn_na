@@ -1,0 +1,99 @@
+sudo apt update
+sudo apt install -y \
+  ros-humble-cv-bridge \
+  ros-humble-tf2-geometry-msgs \
+  python3-opencv
+
+python3 -m pip install --user ultralytics numpy
+
+source /opt/ros/humble/setup.bash
+
+#change path in urdf or use xacro > urdf to change path
+#change path to hanumanoid_interaction
+
+cd ~/Downloads/hanumanoid_interaction
+colcon build --symlink-install
+source install/setup.bash
+
+# in Terminal Cam
+source /opt/ros/humble/setup.bash
+ros2 launch realsense2_camera rs_launch.py align_depth.enable:=true
+# for check topic cam
+ros2 topic list | grep -E "color/image_raw|aligned_depth_to_color|camera_info"
+
+# in Terminal Tf 
+#For connect TF trees: base_link ↔ camera_link or you can connect it in another link
+source /opt/ros/humble/setup.bash
+#TEMP example values (meters + radians). Replace with your measured mount pose later.
+ros2 run tf2_ros static_transform_publisher \
+  0.25 0.00 0.10  0 0 0 \
+  base_link camera_link
+
+#verify this works
+#If this prints transforms continuously -->TF is connected and we can compute object position in base_link.
+ros2 run tf2_ros tf2_echo base_link camera_color_optical_frame
+
+# in Terminal MOVEIT
+source /opt/ros/humble/setup.bash
+source ~/Downloads/hanumanoid_interaction/install/setup.bash
+ros2 launch hanumanoid_config demo.launch.py
+
+# In Terminal YOLO
+source /opt/ros/humble/setup.bash
+source ~/Downloads/hanumanoid_interaction/install/setup.bash
+
+python3 ~/Downloads/hanumanoid_interaction/src/hanumanoid_vision/yolo_depth_to_tf.py
+# Verify it’s producing TF
+ros2 run tf2_ros tf2_echo base_link Target_object
+
+# view the YOLO debug image
+# In Terminal view and you can select mode
+ros2 run rqt_image_view rqt_image_view
+
+# In Terminal COLLISION
+source /opt/ros/humble/setup.bash
+source ~/Downloads/hanumanoid_interaction/install/setup.bash
+python3 ~/Downloads/hanumanoid_interaction/src/target_collision_publisher_dynamic.py --ros-args \
+  -p planning_frame:=base_link \
+  -p target_frame:=Target_object \
+  -p object_id:=target_object \
+  -p padding:=0.02
+
+# In Terminal REACH 
+#but part still error
+source /opt/ros/humble/setup.bash
+source ~/Downloads/hanumanoid_interaction/install/setup.bash
+
+ros2 run hanumanoid_reach_tf reach_tf --ros-args \
+  -p add_target_collision:=false \
+  -p group:=left_arm \
+  -p eef_link:=l_palm \
+  -p target_frame:=Target_object \
+  -p planning_frame:=base_link \
+  -p offset_in_target_frame:=true \
+  -p use_approach_axis:=true \
+  -p approach_axis:=-x \
+  -p approach_up_axis:=+z \
+  -p min_offset_z:=0.18 \
+  -p max_offset_z:=0.21 \
+  -p offset_step_z:=0.01 \
+  -p use_orientation:=true \
+  -p ori_mode:=align \
+  -p align_eef_axis:=-x \
+  -p align_eef_up_axis:=+z \
+  -p lookat_yaw_sweep:=0.7 \
+  -p lookat_yaw_step:=0.7 \
+  -p ori_tol_x:=0.5 -p ori_tol_y:=0.5 -p ori_tol_z:=0.5
+
+
+
+
+
+
+
+
+
+
+
+
+
