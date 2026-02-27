@@ -46,8 +46,40 @@ ros2 run hanumanoid_interaction_description reach_tf_py --ros-args \
   -p lookat_yaw_sweep:=3.14 \
   -p lookat_yaw_step:=0.35 \
   -p ori_tol_x:=0.35 -p ori_tol_y:=0.35 -p ori_tol_z:=0.60
-  
+
+#Config for Isaac sim
+
+-Choosing Tool -> Robotics -> Ros 2 OmniGraphs -> Joint States
 <img width="1452" height="947" alt="image" src="https://github.com/user-attachments/assets/85cb403b-359c-4ae5-8494-879ef1796528" />
-<img width="1452" height="947" alt="image" src="https://github.com/user-attachments/assets/85cb403b-359c-4ae5-8494-879ef1796528" />
+
+-Set Articulation Root to "/World/hanumanoid_interaction/base_link"
+-Set Publisher Topic to "/isaac_joint_states"
+-Set Subscriber Topic to "/isaac_joint_command"
+<img width="1452" height="947" alt="image" src="https://github.com/user-attachments/assets/718ee28a-9ea5-4415-bb2a-b1665404ee37" />
+
+#Add Palm TF to URDF
+
+In "/home/parit/hanumanoid_interaction/src/hanumanoid_interaction_description/urdf/hanumanoid_interaction.urdf" 
+add these to make palm tf
+<link name="r_palm"/>
+  <joint name="r_palm_fixed" type="fixed">
+    <parent link="r_hand_roll_1"/>
+    <child link="r_palm"/>
+    <!-- adjust these -->
+    <origin xyz="-0.002 0.020 -0.120" rpy="0 0 0"/>
+  </joint>
+  <link name="l_palm"/>
+  <joint name="l_palm_fixed" type="fixed">
+    <parent link="l_hand_roll_1"/>
+    <child link="l_palm"/>
+     <!-- adjust these -->
+    <origin xyz="0.002 0.020 -0.120" rpy="0 0 0"/>
+      
+<img width="1905" height="1195" alt="image" src="https://github.com/user-attachments/assets/d77ac7e2-d520-4310-b915-d0c34d36f40e" />
+
+
+
+
+
 
 
